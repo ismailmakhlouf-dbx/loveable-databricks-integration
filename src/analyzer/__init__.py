@@ -1,0 +1,1 @@
+"""Lovable project analysis modules."""

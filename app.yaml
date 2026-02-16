@@ -1,0 +1,24 @@
+# Databricks App Configuration
+# This file defines how the MCP server runs as a Databricks App
+
+command:
+  - "uvicorn"
+  - "src.server:app"
+  - "--host"
+  - "0.0.0.0"
+  - "--port"
+  - "8000"
+
+resources:
+  # Resource allocation for the MCP server
+  cpu: "1"
+  memory: "2Gi"
+
+env:
+  # Environment variables for the app
+  - name: "MCP_SERVER_NAME"
+    value: "lovable-bridge"
+  - name: "LOG_LEVEL"
+    value: "info"
+  - name: "PYTHONUNBUFFERED"
+    value: "1"

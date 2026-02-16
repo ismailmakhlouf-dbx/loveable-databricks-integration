@@ -1,0 +1,42 @@
+# Databricks Asset Bundle Configuration
+# Defines the MCP server deployment to Databricks workspace
+
+bundle:
+  name: lovable-bridge-mcp
+
+workspace:
+  host: ${workspace.host}
+
+targets:
+  dev:
+    mode: development
+    workspace:
+      root_path: /Workspace/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    resources:
+      apps:
+        lovable_bridge:
+          name: lovable-bridge-mcp-dev
+          description: "MCP Server for importing Lovable projects (Development)"
+
+  prod:
+    mode: production
+    workspace:
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+    resources:
+      apps:
+        lovable_bridge:
+          name: lovable-bridge-mcp
+          description: "MCP Server for importing Lovable projects (Production)"
+
+resources:
+  apps:
+    lovable_bridge:
+      name: lovable-bridge-mcp
+      description: "MCP Server for importing Lovable projects into Databricks"
+
+      # Source code path
+      source_code_path: ${workspace.file_path}
+
+  permissions:
+    - level: CAN_MANAGE
+      user_name: ${workspace.current_user.userName}
