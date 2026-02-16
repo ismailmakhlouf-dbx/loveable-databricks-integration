@@ -1,6 +1,6 @@
 """Validator module for compatibility and deployment validation."""
 
-from .compatibility_validator import CompatibilityValidator, CompatibilityIssue
+from .compatibility_validator import CompatibilityIssue, CompatibilityValidator
 from .deployment_validator import DeploymentValidator
 
 __all__ = [

@@ -49,7 +49,7 @@ class ModelGenerator:
         """
         logger.info("Generating SQLModel and Pydantic models")
 
-        generated_files = {}
+        generated_files: dict[str, str] = {}
 
         tables = self.database_metadata.get("tables", {})
 
@@ -105,7 +105,7 @@ class ModelGenerator:
                 has_list_fields = True
 
         # TODO: Extract relationships from foreign keys
-        relationships = []
+        relationships: list[dict[str, Any]] = []
 
         return template.render(
             model_name=model_name,

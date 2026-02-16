@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import sqlparse
-from sqlparse.sql import Function, Identifier, IdentifierList, Parenthesis, Token
+from sqlparse.sql import Parenthesis
 from sqlparse.tokens import Keyword, Name
 
 logger = logging.getLogger(__name__)
@@ -93,7 +93,7 @@ class DatabaseAnalyzer:
     def _process_statement(self, statement: sqlparse.sql.Statement) -> None:
         """Process a single SQL statement."""
         # Get statement type
-        stmt_type = statement.get_type()
+        stmt_type: str | None = statement.get_type()  # type: ignore[no-untyped-call]
 
         if stmt_type == "CREATE":
             self._process_create_statement(statement)
@@ -137,7 +137,7 @@ class DatabaseAnalyzer:
 
     def _extract_table_name(self, statement: sqlparse.sql.Statement) -> str | None:
         """Extract table name from CREATE TABLE statement."""
-        tokens = list(statement.flatten())
+        tokens = list(statement.flatten())  # type: ignore[no-untyped-call]
 
         # Find the table name after "CREATE TABLE"
         found_create = False
@@ -150,10 +150,10 @@ class DatabaseAnalyzer:
                 found_table = True
             elif found_table and token.ttype is Name:
                 # Remove quotes and schema prefix
-                name = token.value.strip('"').strip("'")
-                if "." in name:
-                    name = name.split(".")[-1]
-                return name
+                raw: str = str(token.value).strip('"').strip("'")
+                if "." in raw:
+                    raw = raw.split(".")[-1]
+                return raw
 
         return None
 
@@ -168,9 +168,6 @@ class DatabaseAnalyzer:
         """Parse column definitions from parenthesis."""
         # Split by commas to get individual column definitions
         content = parenthesis.value.strip("()").strip()
-
-        # Simple regex-based parsing for column definitions
-        column_pattern = r'(\w+)\s+([\w\[\]]+)(?:\s*\(([\d,\s]+)\))?'
 
         # Split by commas but respect nested parentheses
         columns = self._smart_split(content)
@@ -196,8 +193,8 @@ class DatabaseAnalyzer:
 
     def _smart_split(self, content: str) -> list[str]:
         """Split by commas while respecting nested parentheses."""
-        result = []
-        current = []
+        result: list[str] = []
+        current: list[str] = []
         depth = 0
 
         for char in content:
@@ -236,7 +233,9 @@ class DatabaseAnalyzer:
             # Extract default value
             default = None
             if "DEFAULT" in col_def.upper():
-                default_match = re.search(r"DEFAULT\s+([^,\s]+(?:\([^)]*\))?)", col_def, re.IGNORECASE)
+                default_match = re.search(
+                    r"DEFAULT\s+([^,\s]+(?:\([^)]*\))?)", col_def, re.IGNORECASE
+                )
                 if default_match:
                     default = default_match.group(1)
 

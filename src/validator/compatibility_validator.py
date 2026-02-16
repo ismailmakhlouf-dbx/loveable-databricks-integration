@@ -42,7 +42,7 @@ class CompatibilityIssue:
 class CompatibilityValidator:
     """Validates project compatibility with Databricks."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize compatibility validator."""
         self.issues: list[CompatibilityIssue] = []
 
@@ -123,7 +123,10 @@ class CompatibilityValidator:
                     severity=CompatibilityIssue.SEVERITY_WARNING,
                     category="realtime",
                     message=f"Function '{func_name}' may use Supabase Realtime",
-                    suggestion="Supabase Realtime is not directly supported. Consider using polling with React Query or implementing WebSocket endpoint manually.",
+                    suggestion=(
+                        "Supabase Realtime is not directly supported. "
+                        "Consider polling with React Query or WebSocket."
+                    ),
                 )
             )
 
@@ -139,8 +142,11 @@ class CompatibilityValidator:
                     CompatibilityIssue(
                         severity=CompatibilityIssue.SEVERITY_INFO,
                         category="llm",
-                        message=f"Function '{func_name}' uses OpenAI API - will be converted to Databricks Foundation Model Serving",
-                        suggestion="Ensure Databricks Foundation Model Serving endpoint access is configured.",
+                        message=(
+                            f"Function '{func_name}' uses OpenAI API - "
+                            "will be converted to Databricks Foundation Model Serving"
+                        ),
+                        suggestion="Ensure Databricks Foundation Model Serving is configured.",
                     )
                 )
 
@@ -149,8 +155,11 @@ class CompatibilityValidator:
                     CompatibilityIssue(
                         severity=CompatibilityIssue.SEVERITY_INFO,
                         category="llm",
-                        message=f"Function '{func_name}' uses Anthropic API - will be converted to Databricks Foundation Model Serving",
-                        suggestion="Ensure Databricks Foundation Model Serving endpoint access is configured.",
+                        message=(
+                            f"Function '{func_name}' uses Anthropic API - "
+                            "will be converted to Databricks Foundation Model Serving"
+                        ),
+                        suggestion="Ensure Databricks Foundation Model Serving is configured.",
                     )
                 )
 
@@ -175,8 +184,14 @@ class CompatibilityValidator:
                 CompatibilityIssue(
                     severity=CompatibilityIssue.SEVERITY_INFO,
                     category="external_apis",
-                    message=f"Function '{func_name}' calls external APIs: {', '.join(external_apis)}",
-                    suggestion="Ensure network connectivity and API credentials are configured in environment.",
+                    message=(
+                        f"Function '{func_name}' calls external APIs: "
+                        f"{', '.join(external_apis)}"
+                    ),
+                    suggestion=(
+                        "Ensure network connectivity and API credentials "
+                        "are configured in environment."
+                    ),
                 )
             )
 
@@ -196,7 +211,10 @@ class CompatibilityValidator:
                         severity=CompatibilityIssue.SEVERITY_WARNING,
                         category="database",
                         message=f"Table '{table_name}' has {len(rls_policies)} RLS policies",
-                        suggestion="Row-Level Security policies will need to be reimplemented as FastAPI dependencies for authorization.",
+                        suggestion=(
+                            "RLS policies will need to be reimplemented "
+                            "as FastAPI dependencies for authorization."
+                        ),
                     )
                 )
 
@@ -214,7 +232,10 @@ class CompatibilityValidator:
                         severity=CompatibilityIssue.SEVERITY_WARNING,
                         category="frontend",
                         message=f"Component '{comp_name}' uses Supabase Realtime",
-                        suggestion="Replace with React Query polling or implement custom WebSocket endpoint.",
+                        suggestion=(
+                            "Replace with React Query polling or "
+                            "implement custom WebSocket endpoint."
+                        ),
                     )
                 )
 
@@ -225,6 +246,9 @@ class CompatibilityValidator:
                         severity=CompatibilityIssue.SEVERITY_INFO,
                         category="frontend",
                         message=f"Component '{comp_name}' uses Supabase Storage",
-                        suggestion="Will be migrated to Databricks Volumes. Update API calls accordingly.",
+                        suggestion=(
+                            "Will be migrated to Databricks Volumes. "
+                            "Update API calls accordingly."
+                        ),
                     )
                 )

@@ -57,7 +57,7 @@ class TypeConverter:
         "BYTEA": "bytes",
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize type converter."""
         self.custom_types: dict[str, str] = {}
 

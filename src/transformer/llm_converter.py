@@ -35,7 +35,7 @@ class LLMConverter:
         "default": "databricks-dbrx-instruct",
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize LLM converter."""
         self.detected_models: list[dict[str, Any]] = []
 
@@ -276,6 +276,6 @@ def call_databricks_llm(
             "total_conversions": len(self.detected_models),
             "models": self.detected_models,
             "databricks_endpoints_used": list(
-                set(m["databricks_model"] for m in self.detected_models)
+                {m["databricks_model"] for m in self.detected_models}
             ),
         }

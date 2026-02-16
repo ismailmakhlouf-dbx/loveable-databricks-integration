@@ -100,9 +100,8 @@ class FrontendAnalyzer:
             ),
         }
 
-        logger.info(
-            f"Frontend analysis complete: {len(self.components)} components, {len(self.pages)} pages"
-        )
+        n_comp, n_pages = len(self.components), len(self.pages)
+        logger.info(f"Frontend analysis complete: {n_comp} components, {n_pages} pages")
         return metadata
 
     def _analyze_directory(self, directory: Path, is_page: bool = False) -> None:

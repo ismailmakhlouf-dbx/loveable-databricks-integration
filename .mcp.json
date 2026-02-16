@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "databricks-glean": {
+      "type": "http",
+      "url": "https://databricks-be.glean.com/mcp/default"
+    }
+  }
+}

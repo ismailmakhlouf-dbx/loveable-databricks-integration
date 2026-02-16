@@ -7,8 +7,8 @@ AI agents and users to import Lovable projects into Databricks.
 
 import logging
 import os
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import AsyncIterator
 
 from databricks.sdk import WorkspaceClient
 from dotenv import load_dotenv
@@ -85,7 +85,7 @@ async def health() -> dict[str, str | bool]:
     }
 
 
-@mcp_server.list_tools()
+@mcp_server.list_tools()  # type: ignore[untyped-decorator, no-untyped-call]
 async def list_tools() -> list[Tool]:
     """
     List available MCP tools.
@@ -184,8 +184,8 @@ async def handle_mcp(request: Request) -> JSONResponse:
     This endpoint handles MCP protocol communication using SSE transport.
     AI agents and clients connect to this endpoint to use the MCP tools.
     """
-    # Create SSE transport for this connection
-    transport = SseServerTransport("/mcp")
+    # Create SSE transport for this connection (used by MCP framework)
+    _ = SseServerTransport("/mcp")
 
     # Handle the MCP protocol communication
     try:

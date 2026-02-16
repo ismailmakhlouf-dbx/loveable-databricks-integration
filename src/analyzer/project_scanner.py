@@ -73,7 +73,7 @@ class ProjectScanner:
 
         except Exception as e:
             logger.error(f"Failed to clone repository: {e}")
-            raise ValueError(f"Failed to clone repository: {e}")
+            raise ValueError(f"Failed to clone repository: {e}") from e
 
     @classmethod
     async def _from_zip(cls, url: str, name: str | None = None) -> "ProjectScanner":
@@ -109,7 +109,7 @@ class ProjectScanner:
 
         except Exception as e:
             logger.error(f"Failed to download/extract ZIP: {e}")
-            raise ValueError(f"Failed to download/extract ZIP: {e}")
+            raise ValueError(f"Failed to download/extract ZIP: {e}") from e
 
     def scan(self) -> dict[str, Any]:
         """
@@ -176,7 +176,7 @@ class ProjectScanner:
 
     def _scan_frontend(self) -> dict[str, Any]:
         """Scan frontend components and pages."""
-        frontend_data = {
+        frontend_data: dict[str, Any] = {
             "components": [],
             "pages": [],
             "hooks": [],

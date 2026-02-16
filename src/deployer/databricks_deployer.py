@@ -4,13 +4,13 @@ Databricks Deployer.
 Deploys Databricks Apps using the Databricks SDK.
 """
 
+import contextlib
 import logging
+import time
 from pathlib import Path
 from typing import Any
-import time
 
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.service import apps
 
 logger = logging.getLogger(__name__)
 
@@ -103,10 +103,8 @@ class DatabricksDeployer:
 
                 # Create parent directory
                 parent_path = str(Path(remote_path).parent)
-                try:
+                with contextlib.suppress(Exception):
                     self.workspace.workspace.mkdirs(parent_path)
-                except Exception:
-                    pass
 
                 # Upload file
                 with open(file_path, "rb") as f:
@@ -160,16 +158,25 @@ class DatabricksDeployer:
                 "config_file_path": f"{workspace_path}/app.yaml",
             }
 
+            deployment_id: str
             if existing_app:
                 # Update existing app
                 logger.info(f"Updating existing app: {app_name}")
                 self.workspace.apps.update(name=app_name, **app_config)
-                deployment_id = existing_app.active_deployment.deployment_id
+                active = getattr(existing_app, "active_deployment", None)
+                deployment_id = (
+                    active.deployment_id if active is not None
+                    else f"deploy_{int(time.time())}"
+                )
             else:
                 # Create new app
                 logger.info(f"Creating new app: {app_name}")
                 created_app = self.workspace.apps.create(**app_config)
-                deployment_id = created_app.active_deployment.deployment_id
+                active = getattr(created_app, "active_deployment", None)
+                deployment_id = (
+                    active.deployment_id if active is not None
+                    else f"deploy_{int(time.time())}"
+                )
 
             return {
                 "deployment_id": deployment_id,

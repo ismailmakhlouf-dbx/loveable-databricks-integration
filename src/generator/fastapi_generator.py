@@ -5,14 +5,13 @@ Converts Supabase Edge Functions to FastAPI endpoints.
 """
 
 import logging
-import re
 from pathlib import Path
 from typing import Any
 
 from jinja2 import Environment, FileSystemLoader
 
-from ..transformer.type_converter import TypeConverter
 from ..transformer.llm_converter import LLMConverter
+from ..transformer.type_converter import TypeConverter
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +148,7 @@ class FastAPIGenerator:
 
     def _generate_routers_init(self, functions: dict[str, Any]) -> str:
         """Generate routers __init__.py."""
-        imports = [f"from . import {name}" for name in functions.keys()]
+        imports = [f"from . import {name}" for name in functions]
         return "\n".join(imports) + "\n"
 
     def _generate_dependencies(self, project_name: str) -> str:
@@ -219,20 +218,20 @@ class FastAPIGenerator:
                     f"    statement = select({table.capitalize()})"
                 )
                 body_lines.append(
-                    f"    results = session.exec(statement).all()"
+                    "    results = session.exec(statement).all()"
                 )
                 body_lines.append(
-                    f"    return {{'data': [r.dict() for r in results]}}"
+                    "    return {'data': [r.dict() for r in results]}"
                 )
             elif op_type == "INSERT":
                 body_lines.append(f"    # Insert into {table}")
                 body_lines.append(
                     f"    new_item = {table.capitalize()}(**data.dict())"
                 )
-                body_lines.append(f"    session.add(new_item)")
-                body_lines.append(f"    session.commit()")
-                body_lines.append(f"    session.refresh(new_item)")
-                body_lines.append(f"    return {{'data': new_item.dict()}}")
+                body_lines.append("    session.add(new_item)")
+                body_lines.append("    session.commit()")
+                body_lines.append("    session.refresh(new_item)")
+                body_lines.append("    return {'data': new_item.dict()}")
 
         body_lines.append("except Exception as e:")
         body_lines.append(
@@ -263,15 +262,15 @@ class FastAPIGenerator:
                 body_lines.append("")
                 body_lines.append(f"# Convert {provider} call to Databricks")
                 body_lines.append(
-                    f'response = workspace.serving_endpoints.query('
+                    'response = workspace.serving_endpoints.query('
                 )
                 body_lines.append(f'    name="{databricks_model}",')
-                body_lines.append(f"    inputs={{")
-                body_lines.append(f'        "messages": messages,')
-                body_lines.append(f'        "temperature": 0.7,')
-                body_lines.append(f'        "max_tokens": 1000,')
-                body_lines.append(f"    }}")
-                body_lines.append(f")")
+                body_lines.append("    inputs={")
+                body_lines.append('        "messages": messages,')
+                body_lines.append('        "temperature": 0.7,')
+                body_lines.append('        "max_tokens": 1000,')
+                body_lines.append("    }")
+                body_lines.append(")")
                 body_lines.append(
                     'result = response.predictions[0]["candidates"][0]["text"]'
                 )

@@ -7,8 +7,8 @@ Sets up Lakebase PostgreSQL database and Unity Catalog.
 import logging
 from typing import Any
 
-from databricks.sdk import WorkspaceClient
 import sqlparse
+from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,8 @@ class DatabaseDeployer:
                 )
                 migration_results.append(result)
 
-            logger.info(f"Database deployment complete: {len(migration_results)} migrations applied")
+            n = len(migration_results)
+            logger.info(f"Database deployment complete: {n} migrations applied")
 
             return {
                 "catalog": catalog,

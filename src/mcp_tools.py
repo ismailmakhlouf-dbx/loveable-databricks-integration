@@ -10,26 +10,26 @@ This module contains the actual implementation of the MCP tools:
 
 import json
 import logging
+import tempfile
 import uuid
 from pathlib import Path
 from typing import Any
-import tempfile
 
 from mcp.types import TextContent
 
-from .analyzer.project_scanner import ProjectScanner
 from .analyzer.backend_analyzer import BackendAnalyzer
 from .analyzer.database_analyzer import DatabaseAnalyzer
 from .analyzer.frontend_analyzer import FrontendAnalyzer
-from .transformer.type_converter import TypeConverter
-from .transformer.llm_converter import LLMConverter
+from .analyzer.project_scanner import ProjectScanner
+from .deployer.database_deployer import DatabaseDeployer
+from .deployer.databricks_deployer import DatabricksDeployer
+from .generator.config_generator import ConfigGenerator
 from .generator.fastapi_generator import FastAPIGenerator
 from .generator.model_generator import ModelGenerator
-from .generator.config_generator import ConfigGenerator
+from .transformer.llm_converter import LLMConverter
+from .transformer.type_converter import TypeConverter
 from .validator.compatibility_validator import CompatibilityValidator
 from .validator.deployment_validator import DeploymentValidator
-from .deployer.databricks_deployer import DatabricksDeployer
-from .deployer.database_deployer import DatabaseDeployer
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +177,7 @@ async def lovable_import(url: str, name: str | None = None) -> dict[str, Any]:
             "IMPORT_FAILED",
             f"Failed to import project: {str(e)}",
             {"url": url, "error": str(e)},
-        )
+        ) from e
 
 
 async def lovable_convert(
@@ -312,7 +312,7 @@ async def lovable_convert(
             "CONVERSION_FAILED",
             f"Failed to convert project: {str(e)}",
             {"project_id": project_id, "error": str(e)},
-        )
+        ) from e
 
 
 async def lovable_deploy(
@@ -436,7 +436,7 @@ async def lovable_deploy(
             "DEPLOYMENT_FAILED",
             f"Failed to deploy project: {str(e)}",
             {"project_id": project_id, "error": str(e)},
-        )
+        ) from e
 
 
 async def lovable_status(deployment_id: str) -> dict[str, Any]:
@@ -495,4 +495,4 @@ async def lovable_status(deployment_id: str) -> dict[str, Any]:
             "STATUS_CHECK_FAILED",
             f"Failed to check deployment status: {str(e)}",
             {"deployment_id": deployment_id, "error": str(e)},
-        )
+        ) from e

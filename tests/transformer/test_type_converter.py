@@ -1,6 +1,5 @@
 """Tests for TypeConverter."""
 
-import pytest
 from src.transformer.type_converter import TypeConverter
 
 

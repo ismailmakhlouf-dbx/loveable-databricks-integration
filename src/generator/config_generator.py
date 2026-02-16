@@ -112,7 +112,7 @@ class ConfigGenerator:
         database_url = f"postgresql://{{{{POSTGRES_USER}}}}:{{{{POSTGRES_PASSWORD}}}}@localhost:5432/{catalog}.{schema}"
 
         # Check if volumes needed
-        volumes = []
+        volumes: list[dict[str, Any]] = []
         # TODO: Add volume configuration if storage detected
 
         # Additional env vars
@@ -149,7 +149,7 @@ class ConfigGenerator:
         app_name = bundle_name
 
         # Detect if jobs needed (cron functions, etc.)
-        jobs = []
+        jobs: list[dict[str, Any]] = []
         # TODO: Add job configuration if cron detected
 
         # Volume configuration
@@ -221,8 +221,8 @@ class ConfigGenerator:
         ]
 
         # External services (from external APIs detected)
-        external_services = []
-        for func_name, func_info in functions.items():
+        external_services: list[dict[str, str]] = []
+        for _func_name, func_info in functions.items():
             external_apis = func_info.get("external_apis", [])
             for api in external_apis:
                 # Extract service name from domain

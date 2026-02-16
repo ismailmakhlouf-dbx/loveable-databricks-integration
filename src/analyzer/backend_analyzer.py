@@ -227,11 +227,9 @@ class BackendAnalyzer:
             r"Authorization",
         ]
 
-        for pattern in auth_patterns:
-            if re.search(pattern, code, re.IGNORECASE):
-                return True
-
-        return False
+        return any(
+            re.search(pattern, code, re.IGNORECASE) for pattern in auth_patterns
+        )
 
     def _detect_external_apis(self, code: str) -> list[str]:
         """Detect external API calls."""
@@ -281,15 +279,14 @@ class BackendAnalyzer:
             )
 
         # Generic LLM API detection
-        if re.search(r'(completion|chat|generate)', code, re.IGNORECASE):
-            if not llm_apis:  # Only add if not already detected
-                llm_apis.append(
-                    {
-                        "provider": "Unknown",
-                        "models": [],
-                        "endpoints": ["completion"],
-                    }
-                )
+        if re.search(r'(completion|chat|generate)', code, re.IGNORECASE) and not llm_apis:
+            llm_apis.append(
+                {
+                    "provider": "Unknown",
+                    "models": [],
+                    "endpoints": ["completion"],
+                }
+            )
 
         return llm_apis
 
