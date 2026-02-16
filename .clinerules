@@ -1,0 +1,261 @@
+# Lovable Bridge MCP Server - Cline/Claude Code Rules
+
+## Quick Start
+
+**ALWAYS read `PROGRESS.md` first!** It contains the current state and what's been done.
+
+## Project Overview
+
+Converting Lovable projects (React + Supabase) → Databricks Apps automatically.
+
+**Current Status:** 40% complete (Phase 2/5 done)
+**Next Priority:** Phase 3 - Generator Module (code generation)
+
+## Key Files to Read First
+
+1. **PROGRESS.md** - Current status, completed work, next steps
+2. **PLAN.md** - Detailed implementation plan and architecture
+3. **README.md** - Project documentation
+4. **src/analyzer/** - See how analysis works (completed modules)
+5. **src/transformer/** - See how conversion works (completed, uncommitted)
+
+## Uncommitted Work ⚠️
+
+These files are done but not committed:
+- `src/transformer/llm_converter.py` (281 lines)
+- `src/transformer/type_converter.py` (307 lines)
+
+**Action:** Should commit these before continuing!
+
+## Architecture
+
+```
+Input (GitHub URL)
+  → Analyzer (understand project)
+  → Transformer (convert types/APIs)
+  → Generator (create code) ← NEXT FOCUS
+  → Validator (check compatibility)
+  → Deployer (push to Databricks)
+Output (Databricks App URL)
+```
+
+## Current Focus: Generator Module
+
+Need to build these generators (in order):
+
+### 1. FastAPIGenerator (`src/generator/fastapi_generator.py`)
+- Convert Supabase Edge Functions → FastAPI endpoints
+- Use `BackendAnalyzer` output as input
+- Use `LLMConverter` and `TypeConverter` for transformations
+- Generate using Jinja2 templates
+
+### 2. ModelGenerator (`src/generator/model_generator.py`)
+- Convert database schemas → SQLModel classes
+- Use `DatabaseAnalyzer` output as input
+- Use `TypeConverter` for SQL type mapping
+
+### 3. ConfigGenerator (`src/generator/config_generator.py`)
+- Generate app.yaml for Databricks Apps
+- Generate databricks.yml asset bundle
+- Generate environment config
+
+### 4. TestGenerator (`src/generator/test_generator.py`)
+- Generate pytest tests for endpoints
+- Generate fixtures
+
+## Code Style
+
+**Python 3.11+**, type hints required:
+```python
+def function_name(param: str) -> dict[str, Any]:
+    """Docstring with Args, Returns, Raises."""
+    pass
+```
+
+**Use:**
+- `pathlib.Path` (not string paths)
+- f-strings for formatting
+- logging extensively
+- Custom exceptions from `LovableError`
+- Pydantic for validation
+- Jinja2 for templates (NOT string concatenation!)
+
+**Don't:**
+- Generate code with string manipulation
+- Skip error handling
+- Skip docstrings
+- Skip logging
+
+## Key Classes to Use
+
+### TypeConverter (Already Exists)
+```python
+from src.transformer.type_converter import TypeConverter
+
+tc = TypeConverter()
+python_type = tc.convert_typescript_type("string[]")  # → "list[str]"
+pydantic_model = tc.typescript_interface_to_pydantic(interface_code)
+sqlmodel_class = tc.sql_table_to_sqlmodel(table_name, columns)
+```
+
+### LLMConverter (Already Exists)
+```python
+from src.transformer.llm_converter import LLMConverter
+
+lc = LLMConverter()
+db_model = lc.select_databricks_model("gpt-4")  # → "databricks-dbrx-instruct"
+converted = lc.convert_openai_to_databricks(code)
+```
+
+## Template Pattern
+
+**Create templates in `templates/` directory:**
+
+```python
+from jinja2 import Environment, FileSystemLoader
+
+env = Environment(loader=FileSystemLoader("templates"))
+template = env.get_template("fastapi/endpoint.py.jinja2")
+code = template.render(
+    function_name=func_name,
+    http_method=method,
+    parameters=params,
+    return_type=return_type
+)
+```
+
+## Common Commands
+
+```bash
+# Check status
+git status
+
+# Commit transformers (do this first!)
+git add src/transformer/*.py
+git commit -m "feat: Add transformer modules"
+
+# Run tests (when they exist)
+pytest
+
+# Check types
+mypy src
+
+# Format
+black src tests
+```
+
+## Data Flow
+
+1. **Analyzer Output** (dict with metadata):
+```python
+{
+    "functions": {"func_name": EdgeFunctionInfo},
+    "tables": {"table_name": TableSchema},
+    "components": {"comp_name": ComponentInfo},
+}
+```
+
+2. **Generator Input** (analyzer metadata + converters):
+```python
+generator = FastAPIGenerator(
+    backend_metadata=analyzer_output,
+    type_converter=TypeConverter(),
+    llm_converter=LLMConverter()
+)
+```
+
+3. **Generator Output** (generated code as string):
+```python
+generated_code = generator.generate()
+# Save to files or return to MCP tool
+```
+
+## Integration Point
+
+Update `src/mcp_tools.py` to use real implementations:
+```python
+async def lovable_convert(project_id: str, catalog: str, schema: str):
+    # Load metadata
+    project_data = PROJECT_STORE[project_id]
+
+    # Initialize converters
+    type_conv = TypeConverter()
+    llm_conv = LLMConverter()
+
+    # Initialize generators
+    fastapi_gen = FastAPIGenerator(...)
+    model_gen = ModelGenerator(...)
+    config_gen = ConfigGenerator(...)
+
+    # Generate code
+    app_code = fastapi_gen.generate()
+    models_code = model_gen.generate()
+    configs = config_gen.generate()
+
+    # Store and return
+    return conversion_summary
+```
+
+## Error Handling
+
+Always use custom exceptions:
+```python
+class LovableError(Exception):
+    def __init__(self, code: str, message: str, details: dict | None = None):
+        ...
+
+# Usage
+if not project_id in store:
+    raise LovableError(
+        "PROJECT_NOT_FOUND",
+        f"Project {project_id} not found",
+        {"project_id": project_id}
+    )
+```
+
+## Logging Pattern
+
+```python
+import logging
+logger = logging.getLogger(__name__)
+
+logger.info(f"Generating FastAPI app for {project_name}")
+logger.warning(f"Unsupported feature detected: {feature}")
+logger.error(f"Failed to generate endpoint: {error}")
+```
+
+## Next Steps (Priority Order)
+
+1. ✅ Commit transformer files
+2. 📁 Create templates directory structure
+3. 🔨 Build `FastAPIGenerator` class
+4. 🔨 Build `ModelGenerator` class
+5. 🔨 Build `ConfigGenerator` class
+6. 🔨 Update `mcp_tools.py` to use generators
+7. ✅ Test with sample project
+8. 📝 Write tests
+
+## Questions to Ask
+
+If unclear about:
+- **Data structures:** Check analyzer output in `src/analyzer/`
+- **Type conversion:** Check `src/transformer/type_converter.py`
+- **LLM conversion:** Check `src/transformer/llm_converter.py`
+- **Overall plan:** Check `PLAN.md`
+- **Current status:** Check `PROGRESS.md`
+
+## Remember
+
+- You're building a **code generator** - outputs are Python/config files
+- Use **Jinja2 templates** for all code generation
+- **Zero configuration** is the goal - minimize user input
+- Test with **real Lovable project patterns**
+- Document **assumptions and limitations**
+
+## Resources
+
+- MCP Spec: https://modelcontextprotocol.io/
+- Databricks SDK: https://docs.databricks.com/dev-tools/sdk-python.html
+- Databricks Apps: https://docs.databricks.com/en/apps/
+- FastAPI: https://fastapi.tiangolo.com/
+- SQLModel: https://sqlmodel.tiangolo.com/

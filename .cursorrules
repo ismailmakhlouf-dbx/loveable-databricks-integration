@@ -1,0 +1,233 @@
+# Lovable Bridge MCP Server - Cursor AI Rules
+
+## Project Context
+
+You are working on the **Lovable Bridge MCP Server** - an MCP server that imports Lovable projects (React + TypeScript + Supabase) and converts them to Databricks Apps.
+
+**IMPORTANT:** Always read `PROGRESS.md` first to understand current state and what's been completed.
+
+## Current Status (as of 2026-02-16)
+
+- ✅ Phase 1: Analysis Layer - COMPLETE
+- ✅ Phase 2: Transformation Layer - COMPLETE (but uncommitted)
+- ❌ Phase 3: Generation Layer - NOT STARTED (NEXT PRIORITY)
+- ❌ Phase 4: Deployment Layer - NOT STARTED
+- ❌ Phase 5: Validation Layer - NOT STARTED
+
+**Uncommitted Files:**
+- `src/transformer/llm_converter.py` (281 lines)
+- `src/transformer/type_converter.py` (307 lines)
+
+## Code Style Guidelines
+
+### Python Code
+- Use Python 3.11+ features
+- Always use type hints: `def function(param: str) -> dict[str, Any]:`
+- Use Pydantic models for configuration and data validation
+- Use dataclasses for simple data structures
+- Prefer `pathlib.Path` over string paths
+- Use f-strings for string formatting
+- Use structural pattern matching where appropriate
+
+### Error Handling
+- Create custom exception classes inheriting from `LovableError`
+- Always provide helpful error messages
+- Use logging extensively: `logger.info()`, `logger.warning()`, `logger.error()`
+- Include context in error messages
+
+### Documentation
+- Write docstrings for all classes and functions
+- Use Google-style docstrings
+- Include Args, Returns, Raises sections
+- Keep docstrings concise but informative
+
+### Testing
+- Write pytest tests for all new code
+- Use fixtures for common setup
+- Mock external dependencies (GitHub, Databricks SDK)
+- Aim for 80%+ coverage
+
+## Architecture Patterns
+
+### Analyzer Pattern
+```python
+class SomethingAnalyzer:
+    def __init__(self, path: Path):
+        self.path = path
+        self.results: dict[str, Any] = {}
+
+    def analyze(self) -> dict[str, Any]:
+        """Main entry point that returns metadata dictionary"""
+        pass
+```
+
+### Generator Pattern
+```python
+class SomethingGenerator:
+    def __init__(self, metadata: dict, converters: ...):
+        self.metadata = metadata
+        self.converters = converters
+
+    def generate(self) -> str:
+        """Generate code/config and return as string"""
+        pass
+```
+
+### Deployer Pattern
+```python
+class SomethingDeployer:
+    def __init__(self, config: dict):
+        self.config = config
+        self.client = WorkspaceClient()
+
+    async def deploy(self) -> dict[str, Any]:
+        """Deploy and return deployment info"""
+        pass
+```
+
+## Key Dependencies
+
+```python
+# Core
+from pathlib import Path
+from typing import Any
+import logging
+
+# Databricks
+from databricks.sdk import WorkspaceClient
+
+# Web
+from fastapi import FastAPI, Depends, HTTPException
+import httpx
+
+# Database
+from sqlmodel import SQLModel, Field, create_engine
+
+# Parsing
+import sqlparse
+import re
+
+# Git
+from git import Repo
+
+# Templates
+from jinja2 import Template, Environment, FileSystemLoader
+```
+
+## Naming Conventions
+
+- **Classes:** PascalCase - `BackendAnalyzer`, `FastAPIGenerator`
+- **Functions/Methods:** snake_case - `analyze_function()`, `generate_endpoint()`
+- **Constants:** UPPER_SNAKE_CASE - `MODEL_MAPPING`, `DEFAULT_TIMEOUT`
+- **Files:** snake_case - `backend_analyzer.py`, `fastapi_generator.py`
+
+## Common Patterns
+
+### Loading Metadata
+```python
+# Always validate metadata structure
+def _load_project_metadata(project_id: str) -> dict[str, Any]:
+    if project_id not in PROJECT_STORE:
+        raise LovableError("PROJECT_NOT_FOUND", f"Project {project_id} not found")
+    return PROJECT_STORE[project_id]
+```
+
+### Using Type Converter
+```python
+type_converter = TypeConverter()
+python_type = type_converter.convert_typescript_type("string[]")  # → "list[str]"
+```
+
+### Using LLM Converter
+```python
+llm_converter = LLMConverter()
+databricks_model = llm_converter.select_databricks_model("gpt-4")  # → "databricks-dbrx-instruct"
+python_code = llm_converter.convert_openai_to_databricks(ts_code)
+```
+
+### Using Jinja2 Templates
+```python
+env = Environment(loader=FileSystemLoader("templates"))
+template = env.get_template("fastapi/endpoint.py.jinja2")
+code = template.render(function=function_info, types=type_mappings)
+```
+
+## Next Tasks Priority
+
+1. **Commit transformer files** (URGENT)
+2. **Create templates directory structure**
+3. **Build `FastAPIGenerator`** - Start with basic endpoint generation
+4. **Build `ModelGenerator`** - Generate SQLModel classes
+5. **Build `ConfigGenerator`** - Generate Databricks configs
+6. **Integrate generators into `mcp_tools.py`**
+
+## File Organization
+
+```
+src/
+├── analyzer/          # ✅ Input analysis
+├── transformer/       # ✅ Type/API conversion (uncommitted)
+├── generator/         # 🔨 Code generation (CURRENT FOCUS)
+├── deployer/          # ⏳ Deployment
+├── validator/         # ⏳ Validation
+├── server.py          # MCP server
+└── mcp_tools.py       # MCP tool implementations
+
+templates/
+├── fastapi/           # FastAPI templates
+├── models/            # Model templates
+└── config/            # Config templates
+```
+
+## Testing Commands
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage
+pytest --cov=src --cov-report=html
+
+# Run specific test file
+pytest tests/generator/test_fastapi_generator.py
+
+# Run linting
+ruff check src tests
+
+# Format code
+black src tests
+
+# Type check
+mypy src
+```
+
+## Git Workflow
+
+1. Always check git status before starting: `git status`
+2. Commit frequently with descriptive messages
+3. Include Co-Authored-By: `Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>`
+4. Don't commit without running tests (when available)
+
+## Reference Files
+
+- **PROGRESS.md** - Current status and completed work
+- **PLAN.md** - Detailed implementation plan
+- **README.md** - Project overview and documentation
+- **src/analyzer/** - Reference for data structures and patterns
+- **src/transformer/** - Reference for conversion logic
+
+## When Stuck
+
+1. Check `PROGRESS.md` for context
+2. Check `PLAN.md` for detailed specifications
+3. Look at existing analyzer implementations for patterns
+4. Check if similar logic exists in transformer modules
+5. Ask for clarification with specific questions
+
+## Remember
+
+- This is a code generation project - you're building generators that write code
+- Use templates extensively (Jinja2) - don't generate code with string concatenation
+- The goal is zero-configuration conversion - minimize user input
+- Test with real Lovable projects when possible
+- Document assumptions and limitations
