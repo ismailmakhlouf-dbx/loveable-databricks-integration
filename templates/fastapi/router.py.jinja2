@@ -1,0 +1,45 @@
+"""
+{{ router_name }} router.
+
+Auto-generated from Edge Functions by Lovable Bridge MCP Server.
+"""
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlmodel import Session, select
+from typing import List
+
+from ..database import get_session
+from ..models import {{ models|join(', ') }}
+from ..dependencies import {{ dependencies|join(', ') }}
+
+router = APIRouter()
+
+{% for endpoint in endpoints %}
+@router.{{ endpoint.http_method|lower }}("{{ endpoint.path }}")
+async def {{ endpoint.function_name }}(
+    {%- for param in endpoint.parameters %}
+    {{ param.name }}: {{ param.type }}{% if param.default %} = {{ param.default }}{% endif %},
+    {%- endfor %}
+    {%- if endpoint.requires_session %}
+    session: Session = Depends(get_session),
+    {%- endif %}
+    {%- if endpoint.requires_auth %}
+    user_id: str = Depends(get_current_user_id),
+    {%- endif %}
+) -> {{ endpoint.return_type }}:
+    """
+    {{ endpoint.description }}
+
+    {% if endpoint.original_function %}Original Edge Function: {{ endpoint.original_function }}{% endif %}
+    """
+    {% if endpoint.body %}
+{{ endpoint.body|indent(4, first=True) }}
+    {% else %}
+    # TODO: Implement endpoint logic
+    raise HTTPException(
+        status_code=status.HTTP_501_NOT_IMPLEMENTED,
+        detail="Endpoint not yet implemented"
+    )
+    {% endif %}
+
+{% endfor %}

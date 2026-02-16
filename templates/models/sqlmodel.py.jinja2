@@ -1,0 +1,27 @@
+"""
+{{ model_name }} SQLModel.
+
+Auto-generated from database schema by Lovable Bridge MCP Server.
+"""
+
+from sqlmodel import SQLModel, Field{% if has_relationships %}, Relationship{% endif %}
+from typing import Optional{% if has_list_fields %}, List{% endif %}
+from datetime import datetime
+from uuid import UUID, uuid4
+{% if has_decimal %}from decimal import Decimal{% endif %}
+
+class {{ model_name }}(SQLModel, table=True):
+    """{{ model_description }}"""
+
+    __tablename__ = "{{ table_name }}"
+
+    {% for field in fields %}
+    {{ field.name }}: {{ field.type }}{% if field.field_args %} = Field({{ field.field_args }}){% endif %}
+    {%- endfor %}
+
+    {% if relationships %}
+    # Relationships
+    {% for rel in relationships %}
+    {{ rel.name }}: {{ rel.type }} = Relationship(back_populates="{{ rel.back_populates }}")
+    {%- endfor %}
+    {% endif %}
