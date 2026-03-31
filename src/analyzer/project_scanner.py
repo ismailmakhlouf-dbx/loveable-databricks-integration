@@ -45,10 +45,10 @@ class ProjectScanner:
         Raises:
             ValueError: If URL is invalid or fetch fails
         """
-        if "github.com" in url:
-            return await cls._from_github(url, name)
-        elif url.endswith(".zip"):
+        if url.endswith(".zip"):
             return await cls._from_zip(url, name)
+        elif "github.com" in url:
+            return await cls._from_github(url, name)
         else:
             raise ValueError(f"Unsupported URL format: {url}")
 
@@ -61,8 +61,12 @@ class ProjectScanner:
         temp_dir = Path(tempfile.mkdtemp(prefix="lovable_"))
 
         try:
-            # Clone repository
-            Repo.clone_from(url, temp_dir)
+            # Clone repository — disable credential prompting (headless/container safe)
+            Repo.clone_from(
+                url,
+                temp_dir,
+                env={"GIT_TERMINAL_PROMPT": "0", "GIT_ASKPASS": "echo"},
+            )
             logger.info(f"Repository cloned to: {temp_dir}")
 
             # Determine project name

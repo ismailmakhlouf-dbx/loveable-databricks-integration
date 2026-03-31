@@ -5,6 +5,7 @@ This server implements the Model Context Protocol (MCP) to enable
 AI agents and users to import Lovable projects into Databricks.
 """
 
+import json
 import logging
 import os
 from collections.abc import AsyncIterator
@@ -16,7 +17,15 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from mcp.server import Server
 from mcp.server.sse import SseServerTransport
-from mcp.types import Tool
+from mcp.types import TextContent, Tool
+
+from .mcp_tools import (
+    LovableError,
+    lovable_convert,
+    lovable_deploy,
+    lovable_import,
+    lovable_status,
+)
 
 # Load environment variables
 load_dotenv()
@@ -30,6 +39,9 @@ logger = logging.getLogger(__name__)
 
 # Initialize MCP Server
 mcp_server = Server(os.getenv("MCP_SERVER_NAME", "lovable-bridge"))
+
+# SSE transport (single instance, shared across connections)
+sse_transport = SseServerTransport("/mcp/messages/")
 
 # Global Databricks client (will be initialized on startup)
 workspace_client: WorkspaceClient | None = None
@@ -52,7 +64,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     yield
 
-    # Cleanup on shutdown
     logger.info("Shutting down Lovable Bridge MCP Server...")
 
 
@@ -72,7 +83,8 @@ async def root() -> dict[str, str]:
         "name": "Lovable Bridge MCP Server",
         "version": "0.1.0",
         "status": "running",
-        "mcp_endpoint": "/mcp",
+        "mcp_sse_endpoint": "/mcp/sse",
+        "mcp_messages_endpoint": "/mcp/messages/",
     }
 
 
@@ -87,11 +99,7 @@ async def health() -> dict[str, str | bool]:
 
 @mcp_server.list_tools()  # type: ignore[untyped-decorator, no-untyped-call]
 async def list_tools() -> list[Tool]:
-    """
-    List available MCP tools.
-
-    These tools enable AI agents to import, convert, and deploy Lovable projects.
-    """
+    """List available MCP tools."""
     return [
         Tool(
             name="lovable_import",
@@ -176,44 +184,63 @@ async def list_tools() -> list[Tool]:
     ]
 
 
-@app.post("/mcp")
-async def handle_mcp(request: Request) -> JSONResponse:
-    """
-    MCP protocol endpoint.
-
-    This endpoint handles MCP protocol communication using SSE transport.
-    AI agents and clients connect to this endpoint to use the MCP tools.
-    """
-    # Create SSE transport for this connection (used by MCP framework)
-    _ = SseServerTransport("/mcp")
-
-    # Handle the MCP protocol communication
+@mcp_server.call_tool()  # type: ignore[untyped-decorator, no-untyped-call]
+async def handle_call_tool(name: str, arguments: dict | None) -> list[TextContent]:
+    """Route MCP tool calls to their implementations."""
+    args = arguments or {}
     try:
-        # The actual MCP protocol handling will be implemented in mcp_tools.py
-        # For now, return a placeholder
-        return JSONResponse(
-            content={
-                "jsonrpc": "2.0",
-                "result": {
-                    "protocolVersion": "0.1.0",
-                    "capabilities": {
-                        "tools": {
-                            "listChanged": True,
-                        }
-                    },
-                    "serverInfo": {
-                        "name": "lovable-bridge",
-                        "version": "0.1.0",
-                    },
-                },
-            }
-        )
+        match name:
+            case "lovable_import":
+                result = await lovable_import(**args)
+            case "lovable_convert":
+                result = await lovable_convert(**args)
+            case "lovable_deploy":
+                result = await lovable_deploy(**args)
+            case "lovable_status":
+                result = await lovable_status(**args)
+            case _:
+                raise ValueError(f"Unknown tool: {name}")
+        return [TextContent(type="text", text=json.dumps(result))]
+    except LovableError as e:
+        return [TextContent(type="text", text=json.dumps({
+            "error": {"code": e.code, "message": e.message, "details": e.details}
+        }))]
     except Exception as e:
-        logger.error(f"Error handling MCP request: {e}")
-        return JSONResponse(
-            status_code=500,
-            content={"error": str(e)},
+        logger.error(f"Tool {name} failed: {e}", exc_info=True)
+        return [TextContent(type="text", text=json.dumps({
+            "error": {"code": "TOOL_ERROR", "message": str(e)}
+        }))]
+
+
+@app.get("/mcp/sse")
+async def mcp_sse_endpoint(request: Request) -> None:
+    """
+    SSE endpoint for MCP protocol.
+
+    MCP clients connect here to establish a persistent SSE stream.
+    After connecting, clients send tool calls to /mcp/messages/.
+    """
+    logger.info("MCP SSE client connected")
+    async with sse_transport.connect_sse(
+        request.scope, request.receive, request._send
+    ) as streams:
+        await mcp_server.run(
+            streams[0],
+            streams[1],
+            mcp_server.create_initialization_options(),
         )
+
+
+@app.post("/mcp/messages/")
+async def mcp_messages_endpoint(request: Request) -> None:
+    """
+    Message endpoint for MCP protocol.
+
+    MCP clients POST tool call requests here after connecting via SSE.
+    """
+    await sse_transport.handle_post_message(
+        request.scope, request.receive, request._send
+    )
 
 
 @app.exception_handler(Exception)

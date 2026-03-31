@@ -96,6 +96,8 @@ class DatabricksDeployer:
             logger.warning(f"Directory may already exist: {e}")
 
         # Upload files
+        uploaded = 0
+        skipped = 0
         for file_path in local_path.rglob("*"):
             if file_path.is_file() and not self._should_ignore_file(file_path):
                 relative_path = file_path.relative_to(local_path)
@@ -106,16 +108,21 @@ class DatabricksDeployer:
                 with contextlib.suppress(Exception):
                     self.workspace.workspace.mkdirs(parent_path)
 
-                # Upload file
-                with open(file_path, "rb") as f:
-                    content = f.read()
+                # Upload file — workspace import API only supports notebook/source
+                # formats; non-standard files (yaml, txt, json) may be skipped
+                try:
+                    with open(file_path, "rb") as f:
+                        content = f.read()
                     self.workspace.workspace.upload(
                         remote_path, content, overwrite=True
                     )
+                    uploaded += 1
+                    logger.debug(f"Uploaded {relative_path}")
+                except Exception as e:
+                    skipped += 1
+                    logger.warning(f"Skipped {relative_path}: {e}")
 
-                logger.debug(f"Uploaded {relative_path}")
-
-        logger.info("Code upload complete")
+        logger.info(f"Code upload complete: {uploaded} uploaded, {skipped} skipped")
 
     def _should_ignore_file(self, file_path: Path) -> bool:
         """Check if file should be ignored during upload."""
@@ -195,6 +202,8 @@ class DatabricksDeployer:
         self, deployment_id: str, timeout: int = 300
     ) -> str:
         """Wait for app deployment to be ready."""
+        import asyncio
+
         logger.info(f"Waiting for deployment {deployment_id} to be ready...")
 
         start_time = time.time()
@@ -206,17 +215,15 @@ class DatabricksDeployer:
                 # if deployment.state == "RUNNING":
                 #     return deployment.url
 
-                # Mock for now
-                time.sleep(2)
-                if time.time() - start_time > 10:
-                    # Return mock URL after 10 seconds
-                    workspace_host = self.workspace.config.host
-                    return f"{workspace_host}/apps/{deployment_id}"
+                # Mock: return URL immediately (use asyncio.sleep, not time.sleep)
+                workspace_host = self.workspace.config.host
+                await asyncio.sleep(0.1)
+                return f"{workspace_host}/apps/{deployment_id}"
 
             except Exception as e:
                 logger.warning(f"Error checking deployment status: {e}")
 
-            time.sleep(5)
+            await asyncio.sleep(2)
 
         raise TimeoutError(
             f"Deployment {deployment_id} did not become ready within {timeout}s"
